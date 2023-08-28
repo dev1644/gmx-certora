@@ -5,4 +5,8 @@ import "../../contracts/data/DataStore.sol";
 
 contract DataStoreHarness is DataStore {
     constructor(RoleStore _roleStore) DataStore(_roleStore) {}
+
+    function isController() external view returns(bool) {
+        return roleStore.hasRole(msg.sender, Role.CONTROLLER);
+    }
 }
