@@ -4,6 +4,10 @@ pragma solidity ^0.8.0;
 import {Oracle, DataStore, EventEmitter, RoleStore, OracleStore} from "../../contracts/oracle/Oracle.sol";
 import {OracleUtils} from "../../contracts/oracle/OracleUtils.sol";
 import {Bits} from "../../contracts/utils/Bits.sol";
+import "../../contracts/data/Keys.sol";
+import "../../contracts/oracle/IPriceFeed.sol";
+
+
 
 contract OracleHarness is Oracle {
 
@@ -82,5 +86,24 @@ contract OracleHarness is Oracle {
         address expectedSigner
     ) external view {
         OracleUtils.validateSigner(SALT, myReportInfo, signature, expectedSigner);
+    }
+
+    function getPriceFeedPriceRaw(address token) external view returns(int256) {
+        address priceFeedAddress = myDataStore.getAddress(Keys.priceFeedKey(token));
+        require(priceFeedAddress != address(0));
+
+        IPriceFeed priceFeed = IPriceFeed(priceFeedAddress);
+        (
+            /* uint80 roundID */,
+            int256 _price,
+            /* uint256 startedAt */,
+            /* uint256 timestamp*/,
+            /* uint80 answeredInRound */
+        ) = priceFeed.latestRoundData();
+        return _price;
+    }
+
+    function getPriceFeedPrice(address token) external view returns (bool, uint256) {
+        return _getPriceFeedPrice(myDataStore, token);
     }
 }

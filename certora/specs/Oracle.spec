@@ -13,24 +13,21 @@ methods {
     function _.arbBlockNumber() external => ghostBlockNumber() expect uint256 ALL;
     function _.arbBlockHash(uint256 blockNumber) external => ghostBlockHash(blockNumber) expect bytes32 ALL;
     /// Oracle summaries
-    function Oracle._getSalt() internal returns bytes32 => mySalt();
-
     /// Getters:
     function OracleHarness.primaryPrices(address) external returns (uint256,uint256);
     function OracleHarness.secondaryPrices(address) external returns (uint256,uint256);
     function OracleHarness.customPrices(address) external returns (uint256,uint256);
     function OracleHarness.getSignerByInfo(uint256, uint256) external returns (address);
+    function getPriceFeedPriceRaw(address token) external returns(int256) envfree;
 }
-
-ghost mySalt() returns bytes32;
 
 ghost ghostBlockNumber() returns uint256 {
     axiom ghostBlockNumber() !=0;
 }
 
 ghost ghostBlockHash(uint256) returns bytes32 {
-    axiom forall uint256 num1. forall uint256 num2. 
-        num1 != num2 => ghostBlockHash(num1) != ghostBlockHash(num2);
+    axiom forall uint256 value1. forall uint256 value2. 
+        value1 != value2 => ghostBlockHash(value1) != ghostBlockHash(value2);
 }
 
 function ghostMedian(uint256[] array) returns uint256 {
@@ -40,26 +37,34 @@ function ghostMedian(uint256[] array) returns uint256 {
     return med;
 }
 
-rule sanity_satisfy(method f) {
-    env e;
-    calldataarg args;
-    f(e, args);
-    satisfy true;
+rule getPriceFeedPriceOnlyReturnsPriceGT0(
+    env e,
+    address token
+) {
+    
+    bool hasFeed;
+    uint256 price;
+    hasFeed, price = getPriceFeedPrice(e, token);
+    if (price > 0) { 
+        assert hasFeed;
+    }
+
+    assert true;
 }
 
-rule validateSignerConsistency() {
-    env e1; env e2;
-    require e1.msg.value == e2.msg.value;
-    
-    bytes32 salt1;
-    bytes32 salt2;
-    address signer1;
-    address signer2;
-    bytes signature;
+rule getPriceFeedPriceShouldRevertWhenPriceFeedPriceInvalid(
+    env e,
+    address token
+) {
+    int rawPrice = getPriceFeedPriceRaw(token);
+    bool hasFeed;
+    uint256 adjustedPrice;
+    hasFeed, adjustedPrice = getPriceFeedPrice(e, token);
+    bool didRevert = lastReverted;
 
-    validateSignerHarness(e1, salt1, signature, signer1);
-    validateSignerHarness@withrevert(e2, salt2, signature, signer2);
+    if (rawPrice <= 0) { 
+        assert didRevert, "should revert";
+    }
 
-    assert (salt1 == salt2 && signer1 == signer2) => !lastReverted,
-        "Revert characteristics of validateSigner are not consistent";
+    assert true;
 }

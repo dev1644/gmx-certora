@@ -10,4 +10,20 @@ contract StrictBankHarness is StrictBank {
     function afterTransferOut(address token) external {
         _afterTransferOut(token);
     }
+
+    function fetchTokenGasLimit(address token) external view returns (uint256) {
+        return dataStore.getUint(Keys.tokenTransferGasLimit(token));
+    }
+
+    function  fetchHoldingAddress() external view returns (address) {
+        return dataStore.getAddress(Keys.HOLDING_ADDRESS);
+    }
+
+    function balanceOf(address token, address user) external view returns(uint256) {
+        return IERC20(token).balanceOf(user);
+    }
+
+    function isController() external view returns(bool) {
+        return roleStore.hasRole(msg.sender, Role.CONTROLLER);
+    }
 }
